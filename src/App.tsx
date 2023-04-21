@@ -1,47 +1,94 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import "./App.css";
-import Button from "@mui/material/Button";
-import { Card } from "@mui/material";
-import person1 from "/sample1.png";
-import person2 from "/sample2.png";
-import person3 from "/sample3.png";
+import { useState, useRef, useEffect, useMemo } from "react";
 
+//子コンポーネント
+function Timer(props) {
+  const { seconds, isActive, startTimer, stopTimer, resetTimer } = props;
+  return (
+    <div className="flex flex-col items-center justify-center h-screen">
+      <div className="text-6xl font-bold">{seconds}</div>
+      <div className="flex mt-5">
+        <button
+          className={`px-4 py-2 font-bold text-white ${
+            isActive ? "bg-red-600" : "bg-green-600"
+          } mr-2`}
+          onClick={isActive ? stopTimer : startTimer}
+        >
+          {isActive ? "ストップ" : "スタート"}
+        </button>
+        <button
+          className="px-4 py-2 font-bold text-white bg-gray-600"
+          onClick={resetTimer}
+        >
+          リセット
+        </button>
+      </div>
+    </div>
+  );
+}
+
+//親コンポーネントでないとフックはうまく起動しない
 function App() {
-  const [count, setCount] = useState(0);
-  const [clicked, setClicked] = useState(false);
-  const setShowHandler = () => {
-    setClicked(true);
-  };
-  const setHiddenHandler = () => {
-    setClicked(false);
+  const timerInfo = [3, 5, 10];
+  const [timerIndex, setTimerIndex] = useState(0);
+  const [seconds, setSeconds] = useState(null);
+  const [isActive, setIsActive] = useState(false);
+  const countRef = useRef(null);
+
+  const initialTimer = useMemo(() => {
+    return timerInfo[timerIndex];
+  }, [timerInfo, timerIndex]);
+  useEffect(() => {
+    setSeconds(initialTimer);
+  }, [initialTimer]);
+
+  const startTimer = () => {
+    setIsActive(true);
+    countRef.current = setInterval(() => {
+      setSeconds((seconds) => {
+        if (seconds <= 0) {
+          if (timerIndex === timerInfo.length) {
+            resetTimer();
+            return 0;
+          } else {
+            updateTimer();
+            console.log("Before:" + timerIndex);
+            setTimerIndex((prevIndex) => prevIndex + 1); //setInterval直下に移動する
+            console.log("After:" + timerIndex);
+            return timerInfo[timerIndex];
+          }
+        } else {
+          return seconds - 1;
+        }
+      });
+    }, 1000);
   };
 
+  const stopTimer = () => {
+    clearInterval(countRef.current);
+    setIsActive(false);
+  };
+
+  const updateTimer = () => {
+    clearInterval(countRef.current);
+    startTimer();
+  };
+
+  const resetTimer = () => {
+    clearInterval(countRef.current);
+    setIsActive(false);
+    setTimerIndex(0);
+  };
   return (
     <div className="App">
-      <h1 className="text-orange-400">ストレッチアプリ</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-      <Button onClick={() => setShowHandler()}>表示</Button>
-      <Button onClick={() => setHiddenHandler()}>非表示</Button>
+      <h1 className="text-orange-400">タイマーアプリ</h1>
       <div>
-        {clicked && (
-          <div className="flex">
-            <img src={person1} className="w-96" alt="person1" />
-            <img src={person2} className="w-96" alt="person1" />
-            <img src={person3} className="w-96" alt="person1" />
-          </div>
-        )}
+        <Timer
+          seconds={seconds}
+          isActive={isActive}
+          startTimer={() => startTimer()}
+          stopTimer={() => stopTimer()}
+          resetTimer={() => resetTimer()}
+        />
       </div>
     </div>
   );
